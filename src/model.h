@@ -67,9 +67,12 @@ class Model {
       const std::vector<int32_t>& targets,
       int32_t targetIndex,
       real lr,
-      State& state);
+      State& state,
+      int32_t category,
+      real k);
   void computeHidden(const std::vector<int32_t>& input, State& state) const;
 
+  real dg(real) const;
   real std_log(real) const;
 
   static const int32_t kUnlimitedPredictions = -1;

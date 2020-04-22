@@ -49,7 +49,7 @@ class _FastText(object):
         if args:
             arg_names = ['lr', 'dim', 'ws', 'epoch', 'minCount',
                          'minCountLabel', 'minn', 'maxn', 'neg', 'wordNgrams',
-                         'loss', 'bucket', 'thread', 'lrUpdateRate', 't',
+                         'loss', 'k', 'bucket', 'thread', 'lrUpdateRate', 't',
                          'label', 'verbose', 'pretrainedVectors']
             for arg_name in arg_names:
                 setattr(self, arg_name, getattr(args, arg_name))
@@ -242,6 +242,10 @@ class _FastText(object):
         """Save the model to the given path"""
         self.f.saveModel(path)
 
+    def save_vectors(self, path):
+        """Save the word vectors to the given path"""
+        self.f.saveVectors(path)
+
     def test(self, path, k=1):
         """Evaluate supervised model using file given by path"""
         return self.f.test(path, k)
@@ -386,6 +390,7 @@ unsupervised_default = {
     'neg': 5,
     'wordNgrams': 1,
     'loss': "ns",
+    'k': 0,
     'bucket': 2000000,
     'thread': multiprocessing.cpu_count() - 1,
     'lrUpdateRate': 100,
@@ -481,8 +486,8 @@ def train_unsupervised(*kargs, **kwargs):
     dataset pulled by the example script word-vector-example.sh, which is
     part of the fastText repository.
     """
-    arg_names = ['input', 'model', 'lr', 'dim', 'ws', 'epoch', 'minCount',
-                 'minCountLabel', 'minn', 'maxn', 'neg', 'wordNgrams', 'loss', 'bucket',
+    arg_names = ['input', 'categories', 'model', 'lr', 'dim', 'ws', 'epoch', 'minCount',
+                 'minCountLabel', 'minn', 'maxn', 'neg', 'wordNgrams', 'loss', 'k', 'bucket',
                  'thread', 'lrUpdateRate', 't', 'label', 'verbose', 'pretrainedVectors']
     args, manually_set_args = read_args(kargs, kwargs, arg_names,
                                         unsupervised_default)

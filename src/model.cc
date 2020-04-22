@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <iostream>
 
 namespace fasttext {
 
@@ -71,7 +72,9 @@ void Model::update(
     const std::vector<int32_t>& targets,
     int32_t targetIndex,
     real lr,
-    State& state) {
+    State& state,
+    int32_t category,
+    real k) {
   if (input.size() == 0) {
     return;
   }
@@ -82,11 +85,24 @@ void Model::update(
   real lossValue = loss_->forward(targets, targetIndex, state, lr, true);
   state.incrementNExamples(lossValue);
 
+  if (category != -1) {
+    grad[category] -= dg(state.hidden[category]) * k * lr;
+    // std::cerr << "hidden[" << category << "]: " << state.hidden[category] << " g: " << g(state.hidden[category]) << " grad[ " << category << "]: " << grad[category] << "\n" << std::flush;
+  }
+
   if (normalizeGradient_) {
     grad.mul(1.0 / input.size());
   }
   for (auto it = input.cbegin(); it != input.cend(); ++it) {
     wi_->addVectorToRow(grad, *it, 1.0);
+  }
+}
+
+real Model::dg(real x) const {
+  if (x < 0.5) {
+    return -1/std::exp(2*x);
+  } else {
+    return -1/(4*std::exp(1)*x*x);
   }
 }
 

@@ -14,6 +14,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <iterator>
 #include <stdexcept>
 
@@ -30,6 +31,7 @@ Dictionary::Dictionary(std::shared_ptr<Args> args)
       nwords_(0),
       nlabels_(0),
       ntokens_(0),
+      ncategories_(0),
       pruneidx_size_(-1) {}
 
 Dictionary::Dictionary(std::shared_ptr<Args> args, std::istream& in)
@@ -38,6 +40,7 @@ Dictionary::Dictionary(std::shared_ptr<Args> args, std::istream& in)
       nwords_(0),
       nlabels_(0),
       ntokens_(0),
+      ncategories_(0),
       pruneidx_size_(-1) {
   load(in);
 }
@@ -63,6 +66,8 @@ void Dictionary::add(const std::string& w) {
     e.word = w;
     e.count = 1;
     e.type = getType(w);
+    e.category = -1;
+    e.catId = -1;
     words_.push_back(e);
     word2int_[h] = size_++;
   } else {
@@ -80,6 +85,10 @@ int32_t Dictionary::nlabels() const {
 
 int64_t Dictionary::ntokens() const {
   return ntokens_;
+}
+
+int32_t Dictionary::ncategories() const {
+  return ncategories_;
 }
 
 const std::vector<int32_t>& Dictionary::getSubwords(int32_t i) const {
@@ -150,6 +159,12 @@ std::string Dictionary::getWord(int32_t id) const {
   assert(id >= 0);
   assert(id < size_);
   return words_[id].word;
+}
+
+int32_t Dictionary::getCategory(int32_t id) const {
+  assert(id >= 0);
+  assert(id < size_);
+  return words_[id].category;
 }
 
 // The correct implementation of fnv should be:
@@ -256,6 +271,42 @@ void Dictionary::readFromFile(std::istream& in) {
     throw std::invalid_argument(
         "Empty vocabulary. Try a smaller -minCount value.");
   }
+}
+
+void Dictionary::readCategories(std::istream& in) {
+  std::string word, category;
+  int32_t cnt = 0;
+  while (readWord(in, word) && readWord(in, category)) {
+    int32_t wordToken = word2int_[find(word)], 
+            catToken = word2int_[find(category)], 
+            catId;
+    if (wordToken != -1) {
+
+      if (catToken == -1) {
+        add(category);
+        catToken = word2int_[find(category)];
+      }
+      
+      if (words_[catToken].catId == -1) {
+        catId = ncategories_++;
+        words_[catToken].catId = catId;
+        std::cerr << std::fixed;
+        std::cerr << "[" << catId << "]: " << category << " (" << catToken << ")" << "\n";
+        std::cerr << std::flush;
+      }
+
+      words_[wordToken].category = words_[catToken].catId;
+      cnt++;
+
+      /*std::cerr << std::fixed;
+      std::cerr << "ADD WORD: " << words_[wordToken].word << " TO CAT: " << category << " @ " << words_[wordToken].category << "\n";
+      std::cerr << std::flush;*/
+    }
+
+    readWord(in, word);
+    assert(word == "</s>");
+  }
+  std::cerr << "\n Attached " << cnt << " words to " << ncategories_ << " categories \n" << std::flush;
 }
 
 void Dictionary::threshold(int64_t t, int64_t tl) {
@@ -440,6 +491,8 @@ void Dictionary::save(std::ostream& out) const {
     out.put(0);
     out.write((char*)&(e.count), sizeof(int64_t));
     out.write((char*)&(e.type), sizeof(entry_type));
+    out.write((char*)&(e.category), sizeof(int32_t));
+    out.write((char*)&(e.catId), sizeof(int32_t));
   }
   for (const auto pair : pruneidx_) {
     out.write((char*)&(pair.first), sizeof(int32_t));
@@ -462,6 +515,8 @@ void Dictionary::load(std::istream& in) {
     }
     in.read((char*)&e.count, sizeof(int64_t));
     in.read((char*)&e.type, sizeof(entry_type));
+    in.read((char*)&(e.category), sizeof(int32_t));
+    in.read((char*)&(e.catId), sizeof(int32_t));
     words_.push_back(e);
   }
   pruneidx_.clear();

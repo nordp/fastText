@@ -26,6 +26,7 @@ Args::Args() {
   neg = 5;
   wordNgrams = 1;
   loss = loss_name::ns;
+  k = 0;
   model = model_name::sg;
   bucket = 2000000;
   minn = 3;
@@ -123,6 +124,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         exit(EXIT_FAILURE);
       } else if (args[ai] == "-input") {
         input = std::string(args.at(ai + 1));
+      } else if (args[ai] == "-categories") {
+        categories = std::string(args.at(ai + 1));
       } else if (args[ai] == "-output") {
         output = std::string(args.at(ai + 1));
       } else if (args[ai] == "-lr") {
@@ -158,6 +161,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
           printHelp();
           exit(EXIT_FAILURE);
         }
+      } else if (args[ai] == "-k") {
+        k = std::stof(args.at(ai + 1));
       } else if (args[ai] == "-bucket") {
         bucket = std::stoi(args.at(ai + 1));
       } else if (args[ai] == "-minn") {
@@ -220,6 +225,11 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     printHelp();
     exit(EXIT_FAILURE);
   }
+  if (k > 0 && categories.empty()) {
+    std::cerr << "Empty category path." << std::endl;
+    printHelp();
+    exit(EXIT_FAILURE);
+  }
   if (wordNgrams <= 1 && maxn == 0 && !hasAutotune()) {
     bucket = 0;
   }
@@ -270,6 +280,7 @@ void Args::printTrainingHelp() {
       << "  -neg                number of negatives sampled [" << neg << "]\n"
       << "  -loss               loss function {ns, hs, softmax, one-vs-all} ["
       << lossToString(loss) << "]\n"
+      << "  -k                  interpretability factor [" << k << "]\n"
       << "  -thread             number of threads (set to 1 to ensure reproducible results) ["
       << thread << "]\n"
       << "  -pretrainedVectors  pretrained word vectors for supervised learning ["
@@ -315,6 +326,7 @@ void Args::save(std::ostream& out) {
   out.write((char*)&(neg), sizeof(int));
   out.write((char*)&(wordNgrams), sizeof(int));
   out.write((char*)&(loss), sizeof(loss_name));
+  out.write((char*)&(k), sizeof(float));
   out.write((char*)&(model), sizeof(model_name));
   out.write((char*)&(bucket), sizeof(int));
   out.write((char*)&(minn), sizeof(int));
@@ -331,6 +343,7 @@ void Args::load(std::istream& in) {
   in.read((char*)&(neg), sizeof(int));
   in.read((char*)&(wordNgrams), sizeof(int));
   in.read((char*)&(loss), sizeof(loss_name));
+  in.read((char*)&(k), sizeof(float));
   in.read((char*)&(model), sizeof(model_name));
   in.read((char*)&(bucket), sizeof(int));
   in.read((char*)&(minn), sizeof(int));
@@ -354,6 +367,8 @@ void Args::dump(std::ostream& out) const {
       << " " << wordNgrams << std::endl;
   out << "loss"
       << " " << lossToString(loss) << std::endl;
+  out << "k"
+      << " " << k << std::endl;
   out << "model"
       << " " << modelToString(model) << std::endl;
   out << "bucket"

@@ -362,11 +362,11 @@ void FastText::supervised(
     return;
   }
   if (args_->loss == loss_name::ova) {
-    model_->update(line, labels, Model::kAllLabelsAsTarget, lr, state);
+    model_->update(line, labels, Model::kAllLabelsAsTarget, lr, state, 0, 0);
   } else {
     std::uniform_int_distribution<> uniform(0, labels.size() - 1);
     int32_t i = uniform(state.rng);
-    model_->update(line, labels, i, lr, state);
+    model_->update(line, labels, i, lr, state, 0, 0);
   }
 }
 
@@ -385,7 +385,7 @@ void FastText::cbow(
         bow.insert(bow.end(), ngrams.cbegin(), ngrams.cend());
       }
     }
-    model_->update(bow, line, w, lr, state);
+    model_->update(bow, line, w, lr, state, 0, 0);
   }
 }
 
@@ -397,9 +397,10 @@ void FastText::skipgram(
   for (int32_t w = 0; w < line.size(); w++) {
     int32_t boundary = uniform(state.rng);
     const std::vector<int32_t>& ngrams = dict_->getSubwords(line[w]);
+    int32_t cat = dict_->getCategory(line[w]);
     for (int32_t c = -boundary; c <= boundary; c++) {
       if (c != 0 && w + c >= 0 && w + c < line.size()) {
-        model_->update(ngrams, line, w + c, lr, state);
+        model_->update(ngrams, line, w + c, lr, state, cat, args_->k);
       }
     }
   }
@@ -720,6 +721,7 @@ std::shared_ptr<Matrix> FastText::createTrainOutputMatrix() const {
 void FastText::train(const Args& args) {
   args_ = std::make_shared<Args>(args);
   dict_ = std::make_shared<Dictionary>(args_);
+
   if (args_->input == "-") {
     // manage expectations
     throw std::invalid_argument("Cannot use stdin for training!");
@@ -731,6 +733,20 @@ void FastText::train(const Args& args) {
   }
   dict_->readFromFile(ifs);
   ifs.close();
+
+  if (args_->categories == "-") {
+    // manage expectations
+    throw std::invalid_argument("Cannot use stdin for training!");
+  }
+  if (args_->k > 0) {
+    std::ifstream ics(args_->categories);
+    if (!ics.is_open()) {
+      throw std::invalid_argument(
+          args_->categories + " cannot be opened for training!");
+    }
+    dict_->readCategories(ics);
+    ics.close();
+  }
 
   if (!args_->pretrainedVectors.empty()) {
     input_ = getInputMatrixFromFile(args_->pretrainedVectors);
@@ -765,10 +781,10 @@ void FastText::startThreads() {
   const int64_t ntokens = dict_->ntokens();
   // Same condition as trainThread
   while (keepTraining(ntokens)) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     if (loss_ >= 0 && args_->verbose > 1) {
       real progress = real(tokenCount_) / (args_->epoch * ntokens);
-      std::cerr << "\r";
+      std::cerr << "\n";
       printInfo(progress, loss_, std::cerr);
     }
   }

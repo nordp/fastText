@@ -12,6 +12,7 @@
 #include <fasttext.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/iostream.h>
 #include <pybind11/stl.h>
 #include <real.h>
 #include <vector.h>
@@ -74,6 +75,7 @@ PYBIND11_MODULE(fasttext_pybind, m) {
   py::class_<fasttext::Args>(m, "args")
       .def(py::init<>())
       .def_readwrite("input", &fasttext::Args::input)
+      .def_readwrite("categories", &fasttext::Args::categories)
       .def_readwrite("output", &fasttext::Args::output)
       .def_readwrite("lr", &fasttext::Args::lr)
       .def_readwrite("lrUpdateRate", &fasttext::Args::lrUpdateRate)
@@ -85,6 +87,7 @@ PYBIND11_MODULE(fasttext_pybind, m) {
       .def_readwrite("neg", &fasttext::Args::neg)
       .def_readwrite("wordNgrams", &fasttext::Args::wordNgrams)
       .def_readwrite("loss", &fasttext::Args::loss)
+      .def_readwrite("k", &fasttext::Args::k)
       .def_readwrite("model", &fasttext::Args::model)
       .def_readwrite("bucket", &fasttext::Args::bucket)
       .def_readwrite("minn", &fasttext::Args::minn)
@@ -143,7 +146,7 @@ PYBIND11_MODULE(fasttext_pybind, m) {
           ft.train(a);
         }
       },
-      py::call_guard<py::gil_scoped_release>());
+      py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect, py::gil_scoped_release>());
 
   py::class_<fasttext::Vector>(m, "Vector", py::buffer_protocol())
       .def(py::init<ssize_t>())
@@ -215,6 +218,9 @@ PYBIND11_MODULE(fasttext_pybind, m) {
       .def(
           "saveModel",
           [](fasttext::FastText& m, std::string s) { m.saveModel(s); })
+      .def(
+          "saveVectors",
+          [](fasttext::FastText& m, std::string s) { m.saveVectors(s); })
       .def(
           "test",
           [](fasttext::FastText& m, const std::string filename, int32_t k) {

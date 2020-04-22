@@ -17,7 +17,7 @@
 namespace fasttext {
 
 enum class model_name : int { cbow = 1, sg, sup };
-enum class loss_name : int { hs = 1, ns, softmax, ova };
+enum class loss_name : int { hs = 1, ns, softmax, ova, semmax };
 enum class metric_name : int { f1score = 1, labelf1score };
 
 class Args {
@@ -30,6 +30,7 @@ class Args {
  public:
   Args();
   std::string input;
+  std::string categories;
   std::string output;
   double lr;
   int lrUpdateRate;
@@ -41,6 +42,7 @@ class Args {
   int neg;
   int wordNgrams;
   loss_name loss;
+  float k;
   model_name model;
   int bucket;
   int minn;
