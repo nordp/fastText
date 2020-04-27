@@ -734,6 +734,14 @@ void FastText::train(const Args& args) {
   dict_->readFromFile(ifs);
   ifs.close();
 
+  if (!args_->pretrainedVectors.empty()) {
+    std::cerr << "\n Loading pretrained vectors from " << args_->pretrainedVectors << std::flush;
+    input_ = getInputMatrixFromFile(args_->pretrainedVectors);
+    std::cerr << "\n Success: embedding size = (" << input_->size(0) << "x" << input_->size(1) << ") \n" << std::flush;
+  } else {
+    input_ = createRandomMatrix();
+  }
+
   if (args_->categories == "-") {
     // manage expectations
     throw std::invalid_argument("Cannot use stdin for training!");
@@ -748,11 +756,6 @@ void FastText::train(const Args& args) {
     ics.close();
   }
 
-  if (!args_->pretrainedVectors.empty()) {
-    input_ = getInputMatrixFromFile(args_->pretrainedVectors);
-  } else {
-    input_ = createRandomMatrix();
-  }
   output_ = createTrainOutputMatrix();
   quant_ = false;
   auto loss = createLoss(output_);
