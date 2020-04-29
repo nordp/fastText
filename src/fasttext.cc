@@ -787,7 +787,7 @@ void FastText::startThreads() {
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     if (loss_ >= 0 && args_->verbose > 1) {
       real progress = real(tokenCount_) / (args_->epoch * ntokens);
-      std::cerr << "\n";
+      std::cerr << "\r";
       printInfo(progress, loss_, std::cerr);
     }
   }
@@ -800,7 +800,7 @@ void FastText::startThreads() {
     std::rethrow_exception(exception);
   }
   if (args_->verbose > 0) {
-    std::cerr << "\r";
+    std::cerr << "\n";
     printInfo(1.0, loss_, std::cerr);
     std::cerr << std::endl;
   }
