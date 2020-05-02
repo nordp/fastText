@@ -276,6 +276,8 @@ void Dictionary::readFromFile(std::istream& in) {
 void Dictionary::readCategories(std::istream& in) {
   std::string word, category;
   int32_t cnt = 0;
+  int64_t minThreshold = size_;
+
   while (readWord(in, word) && readWord(in, category)) {
     int32_t wordToken = word2int_[find(word)], 
             catToken = word2int_[find(category)], 
@@ -285,6 +287,10 @@ void Dictionary::readCategories(std::istream& in) {
       if (catToken == -1) {
         add(category);
         catToken = word2int_[find(category)];
+        if (size_ > 0.75 * MAX_VOCAB_SIZE) {
+          minThreshold++;
+          threshold(minThreshold, minThreshold);
+        }
       }
       
       if (words_[catToken].catId == -1) {
@@ -297,15 +303,16 @@ void Dictionary::readCategories(std::istream& in) {
 
       words_[wordToken].category = words_[catToken].catId;
       cnt++;
-
-      /*std::cerr << std::fixed;
-      std::cerr << "ADD WORD: " << words_[wordToken].word << " TO CAT: " << category << " @ " << words_[wordToken].category << "\n";
-      std::cerr << std::flush;*/
     }
 
     readWord(in, word);
     assert(word == "</s>");
   }
+
+  threshold(args_->minCount, args_->minCountLabel);
+  initTableDiscard();
+  initNgrams();
+
   std::cerr << "\n Attached " << cnt << " words to " << ncategories_ << " categories \n" << std::flush;
 }
 
