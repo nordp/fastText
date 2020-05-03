@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # Program to filter Wikipedia XML dumps to "clean" text consisting only of lowercase
-# letters (a-z, converted from A-Z), and spaces (never consecutive).  
+# letters (a-z, å, ä, ö, converted from A-Z, Å, Ä, Ö), and spaces (never consecutive).  
 # All other characters are converted to spaces.  Only text which normally appears 
 # in the web browser is displayed.  Tables are removed.  Image captions are 
 # preserved.  Links are converted to normal text.  Digits are spelled out.
@@ -12,6 +12,7 @@ $/=">";                     # input record separator
 while (<>) {
   if (/<text /) {$text=1;}  # remove all but between <text> ... </text>
   if (/#redirect/i) {$text=0;}  # remove #REDIRECT
+  if (/#omdirigering/i) {$text=0;}  # remove #REDIRECT
   if ($text) {
 
     # Remove any text not normally visible
@@ -24,11 +25,13 @@ while (<>) {
     s/<[^>]*>//g;           # remove xhtml tags
     s/\[http:[^] ]*/[/g;    # remove normal url, preserve visible text
     s/\|thumb//ig;          # remove images links, preserve caption
+    s/\|miniatyr//ig;          # remove images links, preserve caption
     s/\|left//ig;
     s/\|right//ig;
     s/\|\d+px//ig;
     s/\[\[image:[^\[\]]*\|//ig;
     s/\[\[category:([^|\]]*)[^]]*\]\]/[[$1]]/ig;  # show categories without markup
+    s/\[\[kategori:([^|\]]*)[^]]*\]\]/[[$1]]/ig;  # show categories without markup
     s/\[\[[a-z\-]*:[^\]]*\]\]//g;  # remove links to other languages
     s/\[\[[^\|\]]*\|/[[/g;  # remove wiki url, preserve visible text
     s/\{\{[^\}]*\}\}//g;         # remove {{icons}} and {tables}
@@ -39,18 +42,8 @@ while (<>) {
 
     # convert to lowercase letters and spaces, spell digits
     $_=" $_ ";
-    tr/A-Z/a-z/;
-    s/0/ zero /g;
-    s/1/ one /g;
-    s/2/ two /g;
-    s/3/ three /g;
-    s/4/ four /g;
-    s/5/ five /g;
-    s/6/ six /g;
-    s/7/ seven /g;
-    s/8/ eight /g;
-    s/9/ nine /g;
-    tr/a-z/ /cs;
+    tr/A-ZÅÄÖ/a-zåäö/;
+    tr/a-zåäö/ /cs;
     chop;
     print $_;
   }
